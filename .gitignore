@@ -199,3 +199,4 @@ local.properties
 .sts4-cache/
 
 # Based on gitignore.io work
+.Ds_Store
