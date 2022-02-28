@@ -60,7 +60,6 @@ public class NoteBlockMechanicListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK
                 && block != null
                 && block.getType() == Material.NOTE_BLOCK) {
-            final NoteBlock blockData = (NoteBlock) block.getBlockData();
             final ItemStack clicked = event.getItem();
             event.setCancelled(true);
             if (clicked == null)

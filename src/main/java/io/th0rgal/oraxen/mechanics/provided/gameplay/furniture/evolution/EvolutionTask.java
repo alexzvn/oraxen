@@ -5,8 +5,10 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -14,6 +16,9 @@ public class EvolutionTask extends BukkitRunnable {
 
     private final FurnitureFactory furnitureFactory;
     private final int delay;
+
+    public static final int LOCK_EVOLUTION = 0;
+    public static final int UNLOCK_EVOLUTION = 1;
 
     public EvolutionTask(FurnitureFactory furnitureFactory, int delay) {
         this.furnitureFactory = furnitureFactory;
@@ -24,40 +29,53 @@ public class EvolutionTask extends BukkitRunnable {
     public void run() {
         for (World world : Bukkit.getWorlds())
             for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class))
-                if (frame.getPersistentDataContainer().has(FurnitureMechanic.EVOLUTION_KEY,
-                        PersistentDataType.INTEGER)) {
+                runEachFrame(frame, world);
+    }
 
-                    String itemID = frame.getPersistentDataContainer()
-                            .get(FurnitureMechanic.FURNITURE_KEY, PersistentDataType.STRING);
-                    FurnitureMechanic mechanic = (FurnitureMechanic) furnitureFactory.getMechanic(itemID);
-                    if (mechanic.farmlandRequired &&
-                            frame.getLocation().clone().subtract(0, 1, 0).getBlock().getType()
-                                    != Material.FARMLAND)
-                        continue;
-                    EvolvingFurniture evolution = mechanic.getEvolution();
-                    int evolutionStep = frame.getPersistentDataContainer()
-                            .get(FurnitureMechanic.EVOLUTION_KEY, PersistentDataType.INTEGER)
-                            + delay * frame.getLocation().getBlock().getLightLevel();
+    protected void runEachFrame(ItemFrame frame, World world) {
+        NamespacedKey evolutionKey = FurnitureMechanic.EVOLUTION_KEY;
+        NamespacedKey furnitureKey = FurnitureMechanic.FURNITURE_KEY;
+        NamespacedKey lockEvolutionKey = FurnitureMechanic.LOCK_EVOLUTION_KEY;
+        PersistentDataContainer data = frame.getPersistentDataContainer();
 
-                    float rotation = mechanic.getYaw(frame.getRotation());
-                    if (evolutionStep > evolution.getDelay()) {
-                        if (!evolution.bernoulliTest())
-                            continue;
-                        if (mechanic.hasBarriers())
-                            mechanic.removeSolid(world, new BlockLocation(frame.getLocation()),
-                                    rotation);
-                        else
-                            mechanic.removeAirFurniture(frame);
-                        FurnitureMechanic nextMechanic = (FurnitureMechanic)
-                                furnitureFactory.getMechanic(evolution.getNextStage());
-                        nextMechanic.place(frame.getRotation(),
-                                rotation,
-                                frame.getFacing(),
-                                frame.getLocation(),
-                                null
-                        );
-                    } else frame.getPersistentDataContainer().set(FurnitureMechanic.EVOLUTION_KEY,
-                            PersistentDataType.INTEGER, evolutionStep);
-                }
+        String itemID = data.get(furnitureKey, PersistentDataType.STRING);
+        FurnitureMechanic mechanic = (FurnitureMechanic) furnitureFactory.getMechanic(itemID);
+
+        if (mechanic.farmlandRequired && frame.getLocation().clone().subtract(0, 1, 0).getBlock().getType() != Material.FARMLAND) {
+            return;
+        }
+
+        EvolvingFurniture evolution = mechanic.getEvolution();
+        int evolutionStep = data.get(evolutionKey, PersistentDataType.INTEGER) + delay * frame.getLocation().getBlock().getLightLevel();
+        float rotation = mechanic.getYaw(frame.getRotation());
+
+        if (evolutionStep < evolution.getDelay()) {
+            data.set(evolutionKey, PersistentDataType.INTEGER, evolutionStep);
+            return;
+        }
+
+        if (evolution.isRequiredItemToNextStage()) {
+            if (! data.has(lockEvolutionKey, PersistentDataType.INTEGER)) {
+                data.set(lockEvolutionKey, PersistentDataType.INTEGER, LOCK_EVOLUTION);
+            }
+
+            if (data.get(lockEvolutionKey, PersistentDataType.INTEGER) != UNLOCK_EVOLUTION) {
+                return;
+            }
+        }
+
+        if (! evolution.bernoulliTest()) {
+            return;
+        }
+
+
+        if (mechanic.hasBarriers()) {
+            mechanic.removeSolid(world, new BlockLocation(frame.getLocation()), rotation);
+            return;
+        }
+
+        mechanic.removeAirFurniture(frame);
+        FurnitureMechanic nextMechanic = (FurnitureMechanic) furnitureFactory.getMechanic(evolution.getNextStage());
+        nextMechanic.place(frame.getRotation(),rotation, frame.getFacing(), frame.getLocation(), null);
     }
 }

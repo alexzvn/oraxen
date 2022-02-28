@@ -5,6 +5,8 @@ import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.items.OraxenItems;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolutionTask;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolvingFurniture;
 import io.th0rgal.oraxen.utils.Utils;
 import io.th0rgal.oraxen.utils.breaker.BreakerSystem;
 import io.th0rgal.oraxen.utils.breaker.HardnessModifier;
@@ -28,6 +30,7 @@ import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -246,17 +249,56 @@ public class FurnitureListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onPlayerGiveRequireNextStage(final PlayerInteractEntityEvent e) {
+        if (! (e.getRightClicked() instanceof ItemFrame)) {
+            return;
+        }
+
+        PersistentDataContainer data = e.getRightClicked().getPersistentDataContainer();
+
+        if (!data.has(FURNITURE_KEY, PersistentDataType.STRING)) {
+            return;
+        }
+
+        FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(data.get(FURNITURE_KEY, PersistentDataType.STRING));
+        EvolvingFurniture evolving = mechanic.getEvolution();
+
+        if (evolving.isRequiredItemToNextStage() == false || !data.has(LOCK_EVOLUTION_KEY, PersistentDataType.INTEGER)) {
+            return;
+        }
+
+        if (data.get(LOCK_EVOLUTION_KEY, PersistentDataType.INTEGER) == EvolutionTask.UNLOCK_EVOLUTION) {
+            return;
+        }
+
+        PlayerInventory inv = e.getPlayer().getInventory();
+        ItemStack item = inv.getItemInMainHand();
+
+        for (Material required : evolving.getRequiredItems()) {
+            if (item.getType() == required) {
+                inv.getItemInMainHand().setAmount(item.getAmount() - 1);
+                data.set(LOCK_EVOLUTION_KEY, PersistentDataType.INTEGER, EvolutionTask.UNLOCK_EVOLUTION);
+                break;
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onPlayerClickOnFurniture(final PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null)
             return;
+
         final Block block = event.getClickedBlock();
         if (block.getType() != Material.BARRIER || event.getPlayer().isSneaking())
             return;
+
         final ItemFrame frame = getItemFrame(block.getLocation());
         if (frame == null || !frame.getPersistentDataContainer().has(SEAT_KEY, PersistentDataType.STRING))
             return;
+
         final String entityId = frame.getPersistentDataContainer().get(SEAT_KEY, PersistentDataType.STRING);
         final Entity stand = Bukkit.getEntity(UUID.fromString(entityId));
+
         if (stand != null && stand.getPassengers().size() == 0) {
             stand.addPassenger(event.getPlayer());
             event.setCancelled(true);

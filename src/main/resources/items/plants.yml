@@ -54,6 +54,9 @@ weed_seed:
         probability: 0.5
         light_boost: true
         next_stage: weed_plant_stage1
+        need_fertilizer: false
+        fertilizer_materials: [WATER, SUGAR]
+
       drop:
         silktouch: true
         loots:
