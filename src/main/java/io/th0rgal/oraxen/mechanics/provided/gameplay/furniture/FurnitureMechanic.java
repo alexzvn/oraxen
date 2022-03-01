@@ -14,7 +14,9 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -22,6 +24,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FurnitureMechanic extends Mechanic {
 
@@ -31,6 +35,7 @@ public class FurnitureMechanic extends Mechanic {
     public static final NamespacedKey ORIENTATION_KEY = new NamespacedKey(OraxenPlugin.get(), "orientation");
     public static final NamespacedKey EVOLUTION_KEY = new NamespacedKey(OraxenPlugin.get(), "evolution");
     public static final NamespacedKey LOCK_EVOLUTION_KEY = new NamespacedKey(OraxenPlugin.get(), "lock_evolution");
+    public static final NamespacedKey PROGESS_TEXT = new NamespacedKey(OraxenPlugin.get(), "progress_text");
 
     public final boolean farmlandRequired;
     private final List<BlockLocation> barriers;
@@ -40,6 +45,7 @@ public class FurnitureMechanic extends Mechanic {
     private final Drop drop;
     private final EvolvingFurniture evolvingFurniture;
     private final int light;
+    private String progressText;
     private String placedItemId;
     private ItemStack placedItem;
     private Rotation rotation;
@@ -111,6 +117,9 @@ public class FurnitureMechanic extends Mechanic {
         } else
             drop = new Drop(loots, false, false, getItemID());
 
+        if (section.isString("evolution.progress")) {
+            progressText = section.getString("evolution.progress");
+        }
     }
 
     public static ItemFrame getItemFrame(Location location) {
@@ -170,6 +179,51 @@ public class FurnitureMechanic extends Mechanic {
 
     public EvolvingFurniture getEvolution() {
         return evolvingFurniture;
+    }
+
+    public boolean hasProgressText() {
+        return progressText != null;
+    }
+
+    public UUID placeProgressText(Location location) {
+        ArmorStand text = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+
+        text.setGravity(false);
+        text.setVisible(false);
+        text.setCustomNameVisible(true);
+
+        return text.getUniqueId();
+    }
+
+    public void updateProgressText(UUID entityId, int delay, int maxDelay) {
+        ArmorStand text = (ArmorStand) Bukkit.getEntity(entityId);
+
+        text.setCustomName(convertProgressText(delay, maxDelay));
+    }
+
+    public void cleanProgressText(UUID entityId) {
+        Bukkit.getEntity(entityId).remove();
+    }
+
+    private String convertProgressText(int delay, int maxDelay) {
+        int percent = (int) (((double) delay / (double) maxDelay) * 100);
+
+        // round to nearest 10
+        int percentNearest10 = (int) Math.round(percent / 10.0) * 10;
+
+        Pattern pattern = Pattern.compile("%percent_replace_10:([^%]*)%");
+
+        Matcher matcher = pattern.matcher(progressText);
+
+        if (matcher.matches()) {
+            String replacement = matcher.group(0);
+            String value = matcher.group(1);
+            progressText = progressText.replace(replacement, value.charAt(percentNearest10 / 10) + "");
+        }
+
+        return progressText.replace("%percent%", percent + "")
+                .replace("%delay%", delay + "")
+                .replace("%max_delay%", maxDelay + "");
     }
 
     private void setPlacedItem() {

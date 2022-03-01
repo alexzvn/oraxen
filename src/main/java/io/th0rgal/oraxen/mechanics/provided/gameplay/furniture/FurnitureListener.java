@@ -201,6 +201,11 @@ public class FurnitureListener implements Listener {
 
             mechanic.removeAirFurniture(frame);
             mechanic.getDrop().spawns(frame.getLocation(), new ItemStack(Material.AIR));
+
+            if (mechanic.hasProgressText()) {
+                UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
+                mechanic.cleanProgressText(uuid);
+            }
         }
 
     }
@@ -217,6 +222,12 @@ public class FurnitureListener implements Listener {
                     final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(itemID);
                     event.setCancelled(true);
                     mechanic.removeAirFurniture(frame);
+
+                    if (mechanic.hasProgressText()) {
+                        UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
+                        mechanic.cleanProgressText(uuid);
+                    }
+
                     if (player.getGameMode() != GameMode.CREATIVE)
                         mechanic.getDrop().spawns(frame.getLocation(), player.getInventory().getItemInMainHand());
                 }

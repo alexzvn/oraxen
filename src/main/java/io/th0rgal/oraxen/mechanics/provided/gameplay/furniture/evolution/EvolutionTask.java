@@ -3,6 +3,9 @@ package io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.BlockLocation;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -27,27 +30,52 @@ public class EvolutionTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        for (World world : Bukkit.getWorlds())
-            for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class))
+        for (World world : Bukkit.getWorlds()) {
+            for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
                 runEachFrame(frame, world);
+            }
+        }
     }
 
     protected void runEachFrame(ItemFrame frame, World world) {
         NamespacedKey evolutionKey = FurnitureMechanic.EVOLUTION_KEY;
         NamespacedKey furnitureKey = FurnitureMechanic.FURNITURE_KEY;
         NamespacedKey lockEvolutionKey = FurnitureMechanic.LOCK_EVOLUTION_KEY;
+        NamespacedKey progressTextKey = FurnitureMechanic.PROGESS_TEXT;
+
         PersistentDataContainer data = frame.getPersistentDataContainer();
 
         String itemID = data.get(furnitureKey, PersistentDataType.STRING);
         FurnitureMechanic mechanic = (FurnitureMechanic) furnitureFactory.getMechanic(itemID);
 
+        if (mechanic == null) {
+            throw new Error("Furniture Mechanic not found at location: " + frame.getLocation().toString());
+        }
+
         if (mechanic.farmlandRequired && frame.getLocation().clone().subtract(0, 1, 0).getBlock().getType() != Material.FARMLAND) {
             return;
         }
 
+        if (mechanic.hasProgressText() && data.has(progressTextKey, PersistentDataType.STRING) == false) {
+            UUID uuid = mechanic.placeProgressText(frame.getLocation());
+
+            data.set(progressTextKey, PersistentDataType.STRING, uuid.toString());
+        }
+
         EvolvingFurniture evolution = mechanic.getEvolution();
         int evolutionStep = data.get(evolutionKey, PersistentDataType.INTEGER) + delay * frame.getLocation().getBlock().getLightLevel();
+
+        if (evolutionStep > evolution.getDelay()) {
+            evolutionStep = evolution.getDelay();
+        }
+
         float rotation = mechanic.getYaw(frame.getRotation());
+
+        if (mechanic.hasProgressText()) {
+            UUID uuid = UUID.fromString(data.get(progressTextKey, PersistentDataType.STRING));
+
+            mechanic.updateProgressText(uuid, evolutionStep, evolution.getDelay());
+        }
 
         if (evolutionStep < evolution.getDelay()) {
             data.set(evolutionKey, PersistentDataType.INTEGER, evolutionStep);
@@ -75,6 +103,12 @@ public class EvolutionTask extends BukkitRunnable {
         }
 
         mechanic.removeAirFurniture(frame);
+
+        if (mechanic.hasProgressText()) {
+            UUID uuid = UUID.fromString(data.get(progressTextKey, PersistentDataType.STRING));
+            mechanic.cleanProgressText(uuid);
+        }
+
         FurnitureMechanic nextMechanic = (FurnitureMechanic) furnitureFactory.getMechanic(evolution.getNextStage());
         nextMechanic.place(frame.getRotation(),rotation, frame.getFacing(), frame.getLocation(), null);
     }

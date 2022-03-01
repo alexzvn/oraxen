@@ -52,6 +52,7 @@ weed_seed:
       evolution:
         delay: 10000
         probability: 0.5
+        progress: "Current stage is %percent% % -> %delay%/%max_delay% ticks"
         light_boost: true
         next_stage: weed_plant_stage1
         need_fertilizer: false
