@@ -223,7 +223,7 @@ public class FurnitureListener implements Listener {
                     event.setCancelled(true);
                     mechanic.removeAirFurniture(frame);
 
-                    if (mechanic.hasProgressText()) {
+                    if (mechanic.hasProgressText() && container.has(PROGESS_TEXT, PersistentDataType.STRING)) {
                         UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
                         mechanic.cleanProgressText(uuid);
                     }

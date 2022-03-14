@@ -48,8 +48,8 @@ public class EvolutionTask extends BukkitRunnable {
         String itemID = data.get(furnitureKey, PersistentDataType.STRING);
         FurnitureMechanic mechanic = (FurnitureMechanic) furnitureFactory.getMechanic(itemID);
 
-        if (mechanic == null) {
-            throw new Error("Furniture Mechanic not found at location: " + frame.getLocation().toString());
+        if (mechanic == null || ! data.has(evolutionKey, PersistentDataType.INTEGER)) {
+            return; // skip when not mechanic or it's final stage of furniture (no delay config)
         }
 
         if (mechanic.farmlandRequired && frame.getLocation().clone().subtract(0, 1, 0).getBlock().getType() != Material.FARMLAND) {
@@ -63,6 +63,7 @@ public class EvolutionTask extends BukkitRunnable {
         }
 
         EvolvingFurniture evolution = mechanic.getEvolution();
+
         int evolutionStep = data.get(evolutionKey, PersistentDataType.INTEGER) + delay * frame.getLocation().getBlock().getLightLevel();
 
         if (evolutionStep > evolution.getDelay()) {
@@ -77,16 +78,17 @@ public class EvolutionTask extends BukkitRunnable {
             mechanic.updateProgressText(uuid, evolutionStep, evolution.getDelay());
         }
 
+        if (evolution.isRequiredItemToNextStage() && ! data.has(lockEvolutionKey, PersistentDataType.INTEGER)) {
+            data.set(lockEvolutionKey, PersistentDataType.INTEGER, LOCK_EVOLUTION);
+        }
+
+        // AFTER CHECK DELAY
         if (evolutionStep < evolution.getDelay()) {
             data.set(evolutionKey, PersistentDataType.INTEGER, evolutionStep);
             return;
         }
 
         if (evolution.isRequiredItemToNextStage()) {
-            if (! data.has(lockEvolutionKey, PersistentDataType.INTEGER)) {
-                data.set(lockEvolutionKey, PersistentDataType.INTEGER, LOCK_EVOLUTION);
-            }
-
             if (data.get(lockEvolutionKey, PersistentDataType.INTEGER) != UNLOCK_EVOLUTION) {
                 return;
             }
