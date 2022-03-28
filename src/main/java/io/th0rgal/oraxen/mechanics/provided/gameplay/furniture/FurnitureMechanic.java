@@ -44,6 +44,8 @@ public class FurnitureMechanic extends Mechanic {
     private final BlockFace facing;
     private final Drop drop;
     private final EvolvingFurniture evolvingFurniture;
+    private final boolean resetFarmland;
+    private final boolean isFarmToolRequired;
     private final int light;
     private String progressText;
     private String placedItemId;
@@ -89,6 +91,8 @@ public class FurnitureMechanic extends Mechanic {
         light = section.getInt("light", -1);
 
         farmlandRequired = section.getBoolean("farmland_required", false);
+        resetFarmland = section.getBoolean("reset_farmland", false);
+        isFarmToolRequired = section.getBoolean("harvest_tool", false);
 
 
         facing = section.isString("facing")
@@ -135,6 +139,14 @@ public class FurnitureMechanic extends Mechanic {
 
     public boolean hasBarriers() {
         return !barriers.isEmpty();
+    }
+
+    public boolean isFarmToolRequired() {
+        return isFarmToolRequired;
+    }
+
+    public boolean ableToResetFarmland() {
+        return resetFarmland;
     }
 
     public List<BlockLocation> getBarriers() {

@@ -207,31 +207,42 @@ public class FurnitureListener implements Listener {
                 mechanic.cleanProgressText(uuid);
             }
         }
-
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerBreakHanging(final EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof ItemFrame frame)
-            if (event.getDamager() instanceof Player player) {
-                final PersistentDataContainer container = frame.getPersistentDataContainer();
-                if (container.has(FURNITURE_KEY, PersistentDataType.STRING)) {
-                    final String itemID = container.get(FURNITURE_KEY, PersistentDataType.STRING);
-                    if (!OraxenItems.exists(itemID))
-                        return;
-                    final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(itemID);
-                    event.setCancelled(true);
-                    mechanic.removeAirFurniture(frame);
+        if (! (event.getEntity() instanceof ItemFrame frame)) return;
+        if (! (event.getDamager() instanceof Player player)) return;
 
-                    if (mechanic.hasProgressText() && container.has(PROGESS_TEXT, PersistentDataType.STRING)) {
-                        UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
-                        mechanic.cleanProgressText(uuid);
-                    }
+        final PersistentDataContainer container = frame.getPersistentDataContainer();
 
-                    if (player.getGameMode() != GameMode.CREATIVE)
-                        mechanic.getDrop().spawns(frame.getLocation(), player.getInventory().getItemInMainHand());
-                }
-            }
+        if (! container.has(FURNITURE_KEY, PersistentDataType.STRING)) return;
+
+        final String itemID = container.get(FURNITURE_KEY, PersistentDataType.STRING);
+        if (!OraxenItems.exists(itemID)) return;
+
+        final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(itemID);
+        event.setCancelled(true);
+        mechanic.removeAirFurniture(frame);
+
+        if (mechanic.hasProgressText() && container.has(PROGESS_TEXT, PersistentDataType.STRING)) {
+            UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
+            mechanic.cleanProgressText(uuid);
+        }
+
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            mechanic.getDrop().spawns(frame.getLocation(), player.getInventory().getItemInMainHand());
+        }
+
+        Block under = frame.getLocation().getBlock().getRelative(BlockFace.DOWN);
+
+        OraxenPlugin.get().getLogger().info("Block: " + under.getType().name());
+
+        OraxenPlugin.get().getLogger().info("Resetable : " + mechanic.ableToResetFarmland());
+
+        if (mechanic.ableToResetFarmland() && under != null && under.getType().equals(Material.FARMLAND)) {
+            under.setType(Material.DIRT);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -247,8 +258,22 @@ public class FurnitureListener implements Listener {
         final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(mechanicID);
         final BlockLocation rootBlockLocation = new BlockLocation(customBlockData.get(ROOT_KEY,
                 PersistentDataType.STRING));
+
         mechanic.removeSolid(block.getWorld(), rootBlockLocation, customBlockData
                 .get(ORIENTATION_KEY, PersistentDataType.FLOAT));
+
+        if (mechanic.hasProgressText() && customBlockData.has(PROGESS_TEXT, PersistentDataType.STRING)) {
+            UUID uuid = UUID.fromString(customBlockData.get(PROGESS_TEXT, PersistentDataType.STRING));
+            mechanic.cleanProgressText(uuid);
+        }
+
+        Block farmland = block.getWorld()
+            .getBlockAt(rootBlockLocation.getX(), rootBlockLocation.getY(), rootBlockLocation.getZ())
+            .getRelative(BlockFace.DOWN);
+
+        if (mechanic.ableToResetFarmland() && farmland != null && farmland.getType().equals(Material.FARMLAND)) {
+            farmland.setType(Material.DIRT);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -261,9 +286,8 @@ public class FurnitureListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerGiveRequireNextStage(final PlayerInteractEntityEvent e) {
-        if (! (e.getRightClicked() instanceof ItemFrame)) {
-            return;
-        }
+
+        if (! (e.getRightClicked() instanceof ItemFrame)) return;
 
         PersistentDataContainer data = e.getRightClicked().getPersistentDataContainer();
 
@@ -286,7 +310,7 @@ public class FurnitureListener implements Listener {
         ItemStack item = inv.getItemInMainHand();
 
         for (Material required : evolving.getRequiredItems()) {
-            if (item.getType() == required) {
+            if (item.getType().equals(required)) {
                 inv.getItemInMainHand().setAmount(item.getAmount() - 1);
                 data.set(LOCK_EVOLUTION_KEY, PersistentDataType.INTEGER, EvolutionTask.UNLOCK_EVOLUTION);
                 break;

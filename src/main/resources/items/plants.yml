@@ -49,6 +49,8 @@ weed_seed:
       facing: UP
       barrier: false
       farmland_required: true
+      harvest_tool: true
+      reset_farmland: true
       evolution:
         delay: 10000
         probability: 0.5

@@ -14,6 +14,7 @@ public class EvolvingFurniture {
     private final String nextStage;
     private final int probability;
     private final boolean requiredItemToNextStage;
+
     private final Random random = new Random();
     private final List<Material> requiredItems = new java.util.ArrayList<>();
 
@@ -24,6 +25,7 @@ public class EvolvingFurniture {
         nextStage = plantSection.getString("next_stage");
         probability = (int) (1D / (double) plantSection.get("probability", 1));
         requiredItemToNextStage = plantSection.getBoolean("need_fertilizer", false);
+
 
         if (requiredItemToNextStage) {
             for (String requiredItem : plantSection.getStringList("fertilizer_materials")) {
