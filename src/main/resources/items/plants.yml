@@ -49,7 +49,7 @@ weed_seed:
       facing: UP
       barrier: false
       farmland_required: true
-      harvest_tool: true
+      harvest_tools: [HOE]
       reset_farmland: true
       evolution:
         delay: 10000

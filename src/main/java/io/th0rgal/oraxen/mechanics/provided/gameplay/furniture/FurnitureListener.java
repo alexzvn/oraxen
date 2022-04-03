@@ -199,13 +199,13 @@ public class FurnitureListener implements Listener {
             if (mechanic.hasBarriers())
                 return;
 
-            mechanic.removeAirFurniture(frame);
-            mechanic.getDrop().spawns(frame.getLocation(), new ItemStack(Material.AIR));
-
             if (mechanic.hasProgressText() && container.has(PROGESS_TEXT, PersistentDataType.STRING)) {
                 UUID uuid = UUID.fromString(container.get(PROGESS_TEXT, PersistentDataType.STRING));
                 mechanic.cleanProgressText(uuid);
             }
+
+            mechanic.removeAirFurniture(frame);
+            mechanic.getDrop().spawns(frame.getLocation(), new ItemStack(Material.AIR));
         }
     }
 
@@ -222,6 +222,13 @@ public class FurnitureListener implements Listener {
         if (!OraxenItems.exists(itemID)) return;
 
         final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(itemID);
+
+        if (mechanic.isFarmToolRequired() && ! mechanic.checkFarmTools(player.getInventory().getItemInMainHand().getType())) {
+            Message.MECHANICS_FARM_TOOL_REQUIRED.send(player);
+            event.setCancelled(true);
+            return;
+        }
+
         event.setCancelled(true);
         mechanic.removeAirFurniture(frame);
 
@@ -248,6 +255,8 @@ public class FurnitureListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onFurnitureBreak(final BlockBreakEvent event) {
         final Block block = event.getBlock();
+        final Player player = event.getPlayer();
+
         if (block.getType() != Material.BARRIER || event.getPlayer().getGameMode() != GameMode.CREATIVE)
             return;
 
@@ -258,6 +267,12 @@ public class FurnitureListener implements Listener {
         final FurnitureMechanic mechanic = (FurnitureMechanic) factory.getMechanic(mechanicID);
         final BlockLocation rootBlockLocation = new BlockLocation(customBlockData.get(ROOT_KEY,
                 PersistentDataType.STRING));
+
+        if (mechanic.isFarmToolRequired() && ! mechanic.checkFarmTools(player.getInventory().getItemInMainHand().getType())) {
+            Message.MECHANICS_FARM_TOOL_REQUIRED.send(player);
+            event.setCancelled(true);
+            return;
+        }
 
         mechanic.removeSolid(block.getWorld(), rootBlockLocation, customBlockData
                 .get(ORIENTATION_KEY, PersistentDataType.FLOAT));

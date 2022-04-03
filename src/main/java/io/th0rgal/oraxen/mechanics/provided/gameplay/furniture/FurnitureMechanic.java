@@ -45,7 +45,7 @@ public class FurnitureMechanic extends Mechanic {
     private final Drop drop;
     private final EvolvingFurniture evolvingFurniture;
     private final boolean resetFarmland;
-    private final boolean isFarmToolRequired;
+    private List<String> harvestTools;
     private final int light;
     private String progressText;
     private String placedItemId;
@@ -92,7 +92,14 @@ public class FurnitureMechanic extends Mechanic {
 
         farmlandRequired = section.getBoolean("farmland_required", false);
         resetFarmland = section.getBoolean("reset_farmland", false);
-        isFarmToolRequired = section.getBoolean("harvest_tool", false);
+         section.getBoolean("harvest_tool", false);
+
+        if (section.contains("harvest_tools")) {
+            harvestTools = new ArrayList<>();
+            for (String tools : section.getStringList("harvest_tools")) {
+                harvestTools.add(tools.toUpperCase());
+            }
+        }
 
 
         facing = section.isString("facing")
@@ -142,7 +149,13 @@ public class FurnitureMechanic extends Mechanic {
     }
 
     public boolean isFarmToolRequired() {
-        return isFarmToolRequired;
+        return harvestTools != null;
+    }
+
+    public boolean checkFarmTools(Material tool) {
+        if (harvestTools == null)
+            return true;
+        return harvestTools.contains(tool.name().toUpperCase());
     }
 
     public boolean ableToResetFarmland() {
