@@ -52,7 +52,7 @@ public class FurnitureListener implements Listener {
 
             @Override
             public boolean isTriggered(final Player player, final Block block, final ItemStack tool) {
-                return block.getType() == Material.BARRIER;
+                return block.getType() == Material.BARRIER || block.getType() == Material.STRUCTURE_VOID;
             }
 
             @Override
@@ -257,7 +257,7 @@ public class FurnitureListener implements Listener {
         final Block block = event.getBlock();
         final Player player = event.getPlayer();
 
-        if (block.getType() != Material.BARRIER || event.getPlayer().getGameMode() != GameMode.CREATIVE)
+        if (block.getType() != Material.BARRIER || block.getType() != Material.STRUCTURE_VOID || event.getPlayer().getGameMode() != GameMode.CREATIVE)
             return;
 
         final PersistentDataContainer customBlockData = new CustomBlockData(block, OraxenPlugin.get());
@@ -339,7 +339,7 @@ public class FurnitureListener implements Listener {
             return;
 
         final Block block = event.getClickedBlock();
-        if (block.getType() != Material.BARRIER || event.getPlayer().isSneaking())
+        if ((block.getType() != Material.BARRIER || block.getType() != Material.STRUCTURE_VOID) || event.getPlayer().isSneaking())
             return;
 
         final ItemFrame frame = getItemFrame(block.getLocation());

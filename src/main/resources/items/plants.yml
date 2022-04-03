@@ -47,10 +47,11 @@ weed_seed:
     furniture:
       item: weed_plant_stage0
       facing: UP
-      barrier: false
+      barrier: true
+      barrier_material: STRUCTURE_VOID # STRUCTURE_VOID or BARRIER
       farmland_required: true
-      harvest_tools: [HOE]
-      reset_farmland: true
+      harvest_tools: [HOE] # delete if you don't want to enable
+      reset_farmland: true # should it reset after harvest?
       evolution:
         delay: 10000
         probability: 0.5

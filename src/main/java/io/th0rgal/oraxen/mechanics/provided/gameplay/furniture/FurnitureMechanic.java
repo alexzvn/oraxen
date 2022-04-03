@@ -39,6 +39,7 @@ public class FurnitureMechanic extends Mechanic {
 
     public final boolean farmlandRequired;
     private final List<BlockLocation> barriers;
+    private final String barrierMaterial;
     private final boolean hasRotation;
     private final boolean hasSeat;
     private final BlockFace facing;
@@ -63,8 +64,12 @@ public class FurnitureMechanic extends Mechanic {
             placedItemId = section.getString("item");
 
         barriers = new ArrayList<>();
+
+        barrierMaterial = section.getString("barrier_material", "BARRIER").toUpperCase();
+
         if (CompatibilitiesManager.hasPlugin("ProtocolLib") && section.getBoolean("barrier", false))
             barriers.add(new BlockLocation(0, 0, 0));
+
         if (CompatibilitiesManager.hasPlugin("ProtocolLib") && section.isList("barriers"))
             for (Object barrierObject : section.getList("barriers"))
                 barriers.add(new BlockLocation((Map<String, Object>) barrierObject));
@@ -307,7 +312,8 @@ public class FurnitureMechanic extends Mechanic {
                     data.set(SEAT_KEY, PersistentDataType.STRING, entityId);
                 data.set(ROOT_KEY, PersistentDataType.STRING, new BlockLocation(location).toString());
                 data.set(ORIENTATION_KEY, PersistentDataType.FLOAT, yaw);
-                block.setType(Material.BARRIER, false);
+                block.setType(Material.valueOf(barrierMaterial), false);
+
                 if (light != -1)
                     WrappedLightAPI.createBlockLight(sideLocation, light, false);
             }
